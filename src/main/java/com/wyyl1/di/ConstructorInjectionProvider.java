@@ -2,24 +2,25 @@ package com.wyyl1.di;
 
 import jakarta.inject.Inject;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
+import static java.util.stream.Stream.concat;
 
 class ConstructorInjectionProvider<T> implements ContextConfig.ComponentProvider<T> {
     private Constructor<T> injectConstructor;
     private List<Field> injectFields;
+    private List<Method> injectMethods;
 
     public ConstructorInjectionProvider(Class<T> component) {
         this.injectConstructor = getInjectConstructor(component);
         this.injectFields = getInjectFields(component);
+        this.injectMethods = getInjectMethods(component);
     }
 
     @Override
@@ -32,6 +33,10 @@ class ConstructorInjectionProvider<T> implements ContextConfig.ComponentProvider
             for (Field field : injectFields) {
                 field.set(instance, context.get(field.getType()).get());
             }
+            for (Method method : injectMethods) {
+                method.invoke(instance, stream(method.getParameterTypes()).map(t -> context.get(t).get())
+                        .toArray(Object[]::new));
+            }
             return instance;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException();
@@ -40,8 +45,27 @@ class ConstructorInjectionProvider<T> implements ContextConfig.ComponentProvider
 
     @Override
     public List<Class<?>> getDependencies() {
-        return Stream.concat(stream(injectConstructor.getParameters()).map(Parameter::getType),
-                injectFields.stream().map(Field::getType)).toList();
+        return concat(concat(stream(injectConstructor.getParameters()).map(Parameter::getType),
+                        injectFields.stream().map(Field::getType)),
+                injectMethods.stream().flatMap(m -> stream(m.getParameterTypes()))
+        ).toList();
+    }
+
+    private static <T> List<Method> getInjectMethods(Class<T> component) {
+        List<Method> injectMethods = new ArrayList<>();
+        Class<?> current = component;
+        while (current != Object.class) {
+            injectMethods.addAll(stream(current.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(Inject.class))
+                            .filter(m -> injectMethods.stream().noneMatch(o -> o.getName().equals(m.getName()) &&
+                                    Arrays.equals(o.getParameterTypes(), m.getParameterTypes())))
+                            .filter(m -> stream(component.getDeclaredMethods()).filter(m1 -> !m1.isAnnotationPresent(Inject.class))
+                                    .noneMatch(o -> o.getName().equals(m.getName()) &&
+                                            Arrays.equals(o.getParameterTypes(), m.getParameterTypes())))
+                    .toList());
+            current = current.getSuperclass();
+        }
+        Collections.reverse(injectMethods);
+        return injectMethods;
     }
 
     private static <T> List<Field> getInjectFields(Class<T> component) {
