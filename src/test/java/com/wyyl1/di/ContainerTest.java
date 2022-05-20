@@ -30,7 +30,7 @@ public class ContainerTest {
             };
             config.bind(Component.class, instance);
 
-            assertSame(instance, config.getContext().get(Component.class).get());
+            assertSame(instance, config.getContext().get(Context.Ref.of(Component.class)).get());
         }
 
         //todo abstract class
@@ -38,7 +38,7 @@ public class ContainerTest {
 
         @Test
         void should_return_empty_if_component_not_defined() {
-            Optional<Component> component = config.getContext().get(Component.class);
+            Optional<Component> component = config.getContext().get(Context.Ref.of(Component.class));
             assertTrue(component.isEmpty());
         }
 

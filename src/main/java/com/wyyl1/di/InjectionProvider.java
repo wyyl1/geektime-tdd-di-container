@@ -3,10 +3,7 @@ package com.wyyl1.di;
 import jakarta.inject.Inject;
 
 import java.lang.reflect.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -52,10 +49,11 @@ class InjectionProvider<T> implements ContextConfig.ComponentProvider<T> {
     }
 
     @Override
-    public List<Type> getDependencies() {
+    public List<Context.Ref> getDependencies() {
         return concat(concat(stream(injectConstructor.getParameters()).map(Parameter::getParameterizedType),
-                injectFields.stream().map(Field::getGenericType)),
-                injectMethods.stream().flatMap(m -> stream(m.getParameters()).map(Parameter::getParameterizedType))).toList();
+                        injectFields.stream().map(Field::getGenericType)),
+                injectMethods.stream().flatMap(m -> stream(m.getParameters()).map(Parameter::getParameterizedType)))
+                .map(Context.Ref::of).toList();
     }
 
     private static <T> List<Method> getInjectMethods(Class<T> component) {
@@ -126,6 +124,6 @@ class InjectionProvider<T> implements ContextConfig.ComponentProvider<T> {
     }
 
     private static Object toDependency(Context context, Type type) {
-        return context.get(type).get();
+        return context.get(Context.Ref.of(type)).get();
     }
 }
