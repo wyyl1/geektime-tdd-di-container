@@ -26,11 +26,11 @@ public class ContainerTest {
     class ComponentConstruction {
         @Test
         void should_bind_type_to_a_specific_instance() {
-            Component instance = new Component() {
+            TestComponent instance = new TestComponent() {
             };
-            config.bind(Component.class, instance);
+            config.bind(TestComponent.class, instance);
 
-            assertSame(instance, config.getContext().get(Context.Ref.of(Component.class)).get());
+            assertSame(instance, config.getContext().get(ComponentRef.of(TestComponent.class)).get());
         }
 
         //todo abstract class
@@ -38,7 +38,7 @@ public class ContainerTest {
 
         @Test
         void should_return_empty_if_component_not_defined() {
-            Optional<Component> component = config.getContext().get(Context.Ref.of(Component.class));
+            Optional<TestComponent> component = config.getContext().get(ComponentRef.of(TestComponent.class));
             assertTrue(component.isEmpty());
         }
 
@@ -46,17 +46,17 @@ public class ContainerTest {
         class DependencyCheck {
             @Test
             void should_throw_exception_if_dependency_not_found() {
-                config.bind(Component.class, ComponentWithInjectConstructor.class);
+                config.bind(TestComponent.class, ComponentWithInjectConstructor.class);
 
                 DependencyNotFoundException exception = assertThrows(DependencyNotFoundException.class, () -> config.getContext());
 
                 assertEquals(Dependency.class, exception.getDependency());
-                assertEquals(Component.class, exception.getComponent());
+                assertEquals(TestComponent.class, exception.getComponent());
             }
 
             @Test
             void should_throw_exception_if_cyclic_dependencies_found() {
-                config.bind(Component.class, ComponentWithInjectConstructor.class);
+                config.bind(TestComponent.class, ComponentWithInjectConstructor.class);
                 config.bind(Dependency.class, DependencyDependedOnComponent.class);
 
                 CyclicDependenciesFoundException exception = assertThrows(CyclicDependenciesFoundException.class, () -> config.getContext());
@@ -64,14 +64,14 @@ public class ContainerTest {
                 HashSet<Class<?>> classes = Sets.newHashSet(exception.getComponents());
 
                 assertEquals(2, classes.size());
-                assertTrue(classes.contains(Component.class));
+                assertTrue(classes.contains(TestComponent.class));
                 assertTrue(classes.contains(Dependency.class));
             }
 
             // a -> b -> c -> a
             @Test
             void should_throw_exception_if_transitive_cyclic_dependencies_found() {
-                config.bind(Component.class, ComponentWithInjectConstructor.class);
+                config.bind(TestComponent.class, ComponentWithInjectConstructor.class);
                 config.bind(Dependency.class, DependencyDependedOnAnotherDependency.class);
                 config.bind(AnotherDependency.class, AnotherDependencyDependedOnComponent.class);
 
@@ -80,7 +80,7 @@ public class ContainerTest {
                 List<Class<?>> components = Arrays.asList(exception.getComponents());
 
                 assertEquals(3, components.size());
-                assertTrue(components.contains(Component.class));
+                assertTrue(components.contains(TestComponent.class));
                 assertTrue(components.contains(Dependency.class));
                 assertTrue(components.contains(AnotherDependency.class));
             }
@@ -98,7 +98,7 @@ public class ContainerTest {
     }
 }
 
-interface Component {
+interface TestComponent {
 }
 
 interface Dependency {
@@ -108,12 +108,12 @@ interface AnotherDependency {
 
 }
 
-class ComponentWithDefaultConstructor implements Component {
+class ComponentWithDefaultConstructor implements TestComponent {
     public ComponentWithDefaultConstructor() {
     }
 }
 
-class ComponentWithInjectConstructor implements Component {
+class ComponentWithInjectConstructor implements TestComponent {
     private Dependency dependency;
 
     @Inject
@@ -126,7 +126,7 @@ class ComponentWithInjectConstructor implements Component {
     }
 }
 
-class ComponentWithMultiInjectConstructors implements Component {
+class ComponentWithMultiInjectConstructors implements TestComponent {
     @Inject
     public ComponentWithMultiInjectConstructors(String name, Integer value) {
     }
@@ -136,7 +136,7 @@ class ComponentWithMultiInjectConstructors implements Component {
     }
 }
 
-class ComponentWithNorDefaultInjectConstructor implements Component {
+class ComponentWithNorDefaultInjectConstructor implements TestComponent {
     public ComponentWithNorDefaultInjectConstructor(String name) {
     }
 }
@@ -155,19 +155,19 @@ class DependencyWithInjectConstructor implements Dependency {
 }
 
 class DependencyDependedOnComponent implements Dependency {
-    private Component component;
+    private TestComponent component;
 
     @Inject
-    public DependencyDependedOnComponent(Component component) {
+    public DependencyDependedOnComponent(TestComponent component) {
         this.component = component;
     }
 }
 
 class AnotherDependencyDependedOnComponent implements AnotherDependency {
-    private Component component;
+    private TestComponent component;
 
     @Inject
-    public AnotherDependencyDependedOnComponent(Component component) {
+    public AnotherDependencyDependedOnComponent(TestComponent component) {
         this.component = component;
     }
 }
