@@ -1,5 +1,7 @@
 package com.wyyl1.di;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.wyyl1.di.InjectionTest.ConstructorInjection.Injection.InjectConstructor;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +12,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
 import java.util.stream.Stream;
@@ -53,6 +56,66 @@ class ContextTest {
             Context context = config.getContext();
 
             assertFalse(context.get(new Context.Ref<List<Component>>() {}).isPresent());
+        }
+
+        @Nested
+        class WithQualifier{
+            @Test
+            void should_bind_instance_with_qualifier() {
+                Component instance = new Component() {
+                };
+                config.bind(Component.class, instance, new NamedLiteral("ChosenOne"));
+
+                Context context = config.getContext();
+
+                Component chosenOne = context.get(Context.Ref.of(Component.class, new NamedLiteral("ChosenOne"))).get();
+                assertSame(instance, chosenOne);
+            }
+
+            @Test
+            void should_bind_component_with_qualifier() {
+                Dependency dependency = new Dependency() {
+                };
+                config.bind(Dependency.class, dependency);
+                config.bind(InjectConstructor.class,
+                        InjectConstructor.class, new NamedLiteral("ChosenOne"));
+
+                Context context = config.getContext();
+
+                InjectConstructor chosenOne = context.get(Context.Ref.of(InjectConstructor.class, new NamedLiteral("ChosenOne"))).get();
+                assertSame(dependency, chosenOne.dependency);
+            }
+
+            @Test
+            void should_bind_instance_with_multi_qualifier() {
+                Component instance = new Component() {
+                };
+                config.bind(Component.class, instance, new NamedLiteral("ChosenOne"), new NamedLiteral("Skywalker"));
+
+                Context context = config.getContext();
+                Component chosenOne = context.get(Context.Ref.of(Component.class, new NamedLiteral("ChosenOne"))).get();
+                Component skywalker = context.get(Context.Ref.of(Component.class, new NamedLiteral("Skywalker"))).get();
+
+                assertSame(instance, chosenOne);
+                assertSame(instance, skywalker);
+            }
+
+            @Test
+            void should_bind_component_with_multi_qualifier() {
+                Dependency dependency = new Dependency() {
+                };
+                config.bind(Dependency.class, dependency);
+                config.bind(InjectConstructor.class,
+                        InjectConstructor.class, new NamedLiteral("ChosenOne"),
+                        new NamedLiteral("Skywalker"));
+
+                Context context = config.getContext();
+
+                InjectConstructor chosenOne = context.get(Context.Ref.of(InjectConstructor.class, new NamedLiteral("ChosenOne"))).get();
+                InjectConstructor skywalker = context.get(Context.Ref.of(InjectConstructor.class, new NamedLiteral("Skywalker"))).get();
+                assertSame(dependency, chosenOne.dependency);
+                assertSame(dependency, skywalker.dependency);
+            }
         }
     }
 
@@ -134,5 +197,12 @@ class ContextTest {
             assertTrue(context.get(Context.Ref.of(Component.class)).isPresent());
         }
     }
+}
 
+record NamedLiteral(String value) implements jakarta.inject.Named {
+
+    @Override
+    public Class<? extends Annotation> annotationType() {
+        return jakarta.inject.Named.class;
+    }
 }
