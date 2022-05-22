@@ -1,19 +1,19 @@
 package com.wyyl1.di;
 
 public class DependencyNotFoundException extends RuntimeException {
-    private Class<?> component;
-    private Class<?> dependency;
+    private Component component;
+    private Component dependency;
 
-    public DependencyNotFoundException(Class<?> component, Class<?> dependency) {
+    public DependencyNotFoundException(Component component, Component dependency) {
         this.component = component;
         this.dependency = dependency;
     }
 
-    public Class<?> getDependency() {
+    public Component getDependency() {
         return dependency;
     }
 
-    public Class<?> getComponent() {
+    public Component getComponent() {
         return component;
     }
 }

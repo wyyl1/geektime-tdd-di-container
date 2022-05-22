@@ -50,8 +50,8 @@ public class ContainerTest {
 
                 DependencyNotFoundException exception = assertThrows(DependencyNotFoundException.class, () -> config.getContext());
 
-                assertEquals(Dependency.class, exception.getDependency());
-                assertEquals(TestComponent.class, exception.getComponent());
+                assertEquals(Dependency.class, exception.getDependency().type());
+                assertEquals(TestComponent.class, exception.getComponent().type());
             }
 
             @Test

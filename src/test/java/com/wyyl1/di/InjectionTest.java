@@ -1,6 +1,7 @@
 package com.wyyl1.di;
 
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import jakarta.inject.Provider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -126,6 +127,23 @@ class InjectionTest {
             ComponentWithDefaultConstructor instance = new InjectionProvider<>(ComponentWithDefaultConstructor.class).get(context);
 
             assertNotNull(instance);
+        }
+
+        @Nested
+        class WithQualifier {
+
+            static class InjectConstructor{
+                @Inject
+                public InjectConstructor(@Named("ChosenOne") Dependency dependency) {
+                }
+            }
+
+            @Test
+            void should_include_qualifier_with_dependency() {
+                InjectionProvider<InjectConstructor> provider = new InjectionProvider<>(InjectConstructor.class);
+                assertArrayEquals(new ComponentRef<?>[]{ComponentRef.of(Dependency.class, new NamedLiteral("ChosenOne"))},
+                        provider.getDependencies().toArray());
+            }
         }
     }
 
