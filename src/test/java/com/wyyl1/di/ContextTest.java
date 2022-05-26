@@ -156,6 +156,27 @@ class ContextTest {
                 assertEquals(PooledProvider.MAX, new HashSet<>(instances).size());
             }
 
+            @Test
+            void should_throw_exception_if_multi_scope_provided() {
+                assertThrows(IllegalComponentException.class, () -> config.bind(NotSingleton.class, NotSingleton.class, new SingletonLiteral(), new PooledLiteral()));
+            }
+
+            @Singleton
+            @Pooled
+            static class MultiScopeAnnotated {
+
+            }
+
+            @Test
+            void should_throw_exception_if_multi_scope_annotated() {
+                assertThrows(IllegalComponentException.class, () -> config.bind(MultiScopeAnnotated.class, MultiScopeAnnotated.class));
+            }
+
+            @Test
+            void should_throw_exception_if_scope_undefined() {
+                assertThrows(IllegalComponentException.class, () -> config.bind(NotSingleton.class, NotSingleton.class, new PooledLiteral()));
+            }
+
             @Nested
             class WithQualifier {
                 @Test
@@ -385,7 +406,8 @@ record SingletonLiteral() implements Singleton {
 @Scope
 @Documented
 @Retention(RUNTIME)
-@interface Pooled {}
+@interface Pooled {
+}
 
 record PooledLiteral() implements Pooled {
 
@@ -395,14 +417,14 @@ record PooledLiteral() implements Pooled {
     }
 }
 
-class PooledProvider<T> implements ContextConfig.ComponentProvider<T> {
+class PooledProvider<T> implements ComponentProvider<T> {
     static int MAX = 2;
 
     private List<T> pool = new ArrayList<>();
     private int current;
-    private ContextConfig.ComponentProvider<T> provider;
+    private ComponentProvider<T> provider;
 
-    public PooledProvider(ContextConfig.ComponentProvider<T> provider) {
+    public PooledProvider(ComponentProvider<T> provider) {
         this.provider = provider;
     }
 
